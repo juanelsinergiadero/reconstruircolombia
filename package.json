@@ -2,11 +2,15 @@
   "name": "reconstruircolombia",
   "version": "0.1.0",
   "private": true,
+  "description": "Plataforma humanitaria de codigo abierto para conectar necesidades de damnificados con ofrecimientos de ayuda, segmentada por departamento y municipio (DIVIPOLA). Respuesta al terremoto del 10 de agosto de 2026.",
+  "license": "AGPL-3.0-only",
+  "author": "El Sinergiadero",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
