@@ -29,12 +29,6 @@ export default function LandingPage() {
   return (
     <main className="flex-1 bg-white text-zinc-900">
       <div className="mx-auto max-w-5xl px-6 sm:px-10 lg:px-16">
-        <header className="pt-10 sm:pt-14">
-          <span className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-900">
-            reconstruircolombia
-          </span>
-        </header>
-
         <section className="pt-16 pb-20 sm:pt-24 sm:pb-28">
           <p className="text-sm font-semibold uppercase tracking-[0.15em] text-acento">
             Respuesta al terremoto del 10 de agosto
