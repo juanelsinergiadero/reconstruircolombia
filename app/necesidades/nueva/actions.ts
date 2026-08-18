@@ -4,8 +4,15 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getAuthUser } from '@/lib/auth'
-import { municipioExiste } from '@/lib/geo'
+import { municipioExiste, getMunicipiosPorDepartamento } from '@/lib/geo'
 import { necesidadSchema } from '@/lib/validations/necesidad'
+
+// Server Action invocada directamente (no como form action) desde el
+// selector jerarquico del formulario: al elegir departamento, trae sus
+// municipios para poblar el segundo <select>.
+export async function obtenerMunicipios(departamentoCodigo: string) {
+  return getMunicipiosPorDepartamento(departamentoCodigo)
+}
 
 // Estado que la Server Action devuelve al formulario (useActionState).
 export type CrearNecesidadState = {
