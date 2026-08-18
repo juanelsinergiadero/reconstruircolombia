@@ -1,9 +1,15 @@
 // =============================================================
-// reconstruircolombia — Schema Prisma v1 (MVP)
+// reconstruircolombia — Schema Prisma v1 (dominio ampliado)
 // =============================================================
-// Identidad geografica: el codigo DIVIPOLA del DANE es la clave natural.
-// Departamento 2 digitos ("05"), Municipio 5 digitos ("05001").
-// Se guardan como String, NUNCA como Int (perder el cero rompe el join).
+// Modelo anclado en marcos humanitarios reales:
+// - Categorias alineadas a clusteres ONU/Esfera, en lenguaje de la persona.
+// - Verificacion por niveles de confianza (suma, nunca requisito para publicar).
+// - Validacion por pares con salvaguardas anti-fraude.
+// - Organizaciones de sociedad civil como entidad propia (Via B).
+//
+// Principio: "el esquema anticipa el poder, la v1 implementa lo esencial".
+// Se modela todo el dominio; algunas piezas (subida de documentos, enlace RUD
+// activo) quedan modeladas pero se implementan despues.
 // =============================================================
 
 generator client {
@@ -18,10 +24,10 @@ datasource db {
 // -------------------- GEOGRAFIA (seed DIVIPOLA) --------------------
 
 model Departamento {
-  codigo   String @id @db.VarChar(2)
-  nombre   String
-  latitud  Float?
-  longitud Float?
+  codigo    String   @id @db.VarChar(2)
+  nombre    String
+  latitud   Float?
+  longitud  Float?
 
   municipios Municipio[]
 
@@ -29,22 +35,76 @@ model Departamento {
 }
 
 model Municipio {
-  codigo        String  @id @db.VarChar(5)
-  nombre        String
-  slug          String
-  tipoMunicipio String? @map("tipo_municipio")
-  latitud       Float?
-  longitud      Float?
+  codigo          String   @id @db.VarChar(5)
+  nombre          String
+  slug            String
+  tipoMunicipio   String?  @map("tipo_municipio")
+  latitud         Float?
+  longitud        Float?
 
   departamentoCodigo String       @map("departamento_codigo") @db.VarChar(2)
   departamento       Departamento @relation(fields: [departamentoCodigo], references: [codigo])
 
-  usuarios    User[]
-  necesidades Necesidad[]
+  usuarios       User[]
+  necesidades    Necesidad[]
+  organizaciones Organizacion[]
 
   @@index([departamentoCodigo])
   @@index([slug])
   @@map("municipios")
+}
+
+// -------------------- ORGANIZACIONES (sociedad civil) --------------------
+// Instituciones educativas, JAC, fundaciones, colectivos. Entidad propia:
+// varios usuarios pueden pertenecer a una. Dos niveles de verificacion.
+
+enum TipoOrganizacion {
+  INSTITUCION_EDUCATIVA
+  JAC                    // Junta de Accion Comunal
+  FUNDACION
+  COLECTIVO
+  ENTIDAD_OFICIAL
+  OTRA
+}
+
+enum EstadoOrganizacion {
+  REGISTRADA  // datos basicos; actua de inmediato pero sin verificar
+  VERIFICADA  // documento validado (NIT/RUT/personeria/acta) por un moderador
+}
+
+model Organizacion {
+  id           String             @id @default(cuid())
+  nombre       String
+  tipo         TipoOrganizacion
+  estado       EstadoOrganizacion @default(REGISTRADA)
+  descripcion  String?
+
+  // Contacto de la organizacion (no es dato de damnificado; es institucional).
+  contactoEmail    String?  @map("contacto_email")
+  contactoTelefono String?  @map("contacto_telefono")
+
+  // Municipio sede (de donde es la organizacion). Operacion multi-municipio -> v2.
+  municipioCodigo String    @map("municipio_codigo") @db.VarChar(5)
+  municipio       Municipio @relation(fields: [municipioCodigo], references: [codigo])
+
+  // Documento de verificacion: MODELADO pero la subida segura de archivos se
+  // implementa despues (requiere almacenamiento privado, fuera del repo).
+  // Aqui solo se guarda la referencia/URL al documento cuando exista.
+  documentoUrl       String?   @map("documento_url")
+  verificadaPor      String?   @map("verificada_por")     // id del moderador
+  verificadaEn       DateTime? @map("verificada_en")
+
+  // Miembros y actividad.
+  miembros           User[]
+  necesidadesReportadas Necesidad[]  @relation("NecesidadOrganizacion")
+  validaciones       Validacion[]    @relation("ValidacionOrganizacion")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([municipioCodigo])
+  @@index([estado])
+  @@map("organizaciones")
 }
 
 // -------------------- USUARIOS Y AUTENTICACION --------------------
@@ -57,35 +117,46 @@ enum Rol {
 }
 
 model User {
-  id       String  @id @default(cuid())
-  email    String  @unique
-  password String?
-  nombre   String?
-  telefono String?
-  rol      Rol     @default(DAMNIFICADO)
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String?
+  nombre    String?
+  telefono  String?
+  rol       Rol      @default(DAMNIFICADO)
+  // Desactivacion en vez de borrado: preserva trazabilidad anti-fraude.
+  activo    Boolean  @default(true)
 
   municipioCodigo String?    @map("municipio_codigo") @db.VarChar(5)
   municipio       Municipio? @relation(fields: [municipioCodigo], references: [codigo])
 
-  necesidades Necesidad[]
+  // Un usuario puede pertenecer a UNA organizacion (opcional).
+  organizacionId String?       @map("organizacion_id")
+  organizacion   Organizacion? @relation(fields: [organizacionId], references: [id])
+
+  necesidades  Necesidad[]  @relation("NecesidadAutor")
+  validaciones Validacion[] @relation("ValidacionValidador")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([municipioCodigo])
+  @@index([organizacionId])
   @@map("usuarios")
 }
 
 // -------------------- NECESIDAD (nucleo del MVP) --------------------
 
+// Categorias alineadas a clusteres ONU/Esfera, en lenguaje de la persona.
 enum CategoriaNecesidad {
-  AGUA
-  ALIMENTOS
-  SALUD
-  REFUGIO
-  ROPA
-  HIGIENE
-  RESCATE
+  AGUA_SANEAMIENTO   // WASH
+  ALIMENTOS          // Seguridad alimentaria
+  ALOJAMIENTO        // Refugio / shelter
+  SALUD              // Salud
+  HIGIENE            // WASH / kits de higiene
+  ROPA_ABRIGO        // necesidad local post-sismo
+  PROTECCION         // menores no acompanados, violencia, personas vulnerables
+  EDUCACION          // ninos sin escuela
+  RESCATE            // rescate / remocion de escombros (fase aguda)
   OTRO
 }
 
@@ -96,33 +167,64 @@ enum Urgencia {
   CRITICA
 }
 
+// Estado gestionado por moderacion (distinto del nivel de confianza, que se
+// deriva de las validaciones). Hibrido: estado explicito + validaciones contadas.
 enum EstadoNecesidad {
-  PENDIENTE
-  VERIFICADA
-  EN_PROCESO
+  PENDIENTE     // recien creada, aun sin revision de moderador
+  EN_PROCESO    // alguien esta atendiendola
   RESUELTA
-  RECHAZADA
+  RECHAZADA     // moderador la marco invalida
+}
+
+// Quien reporta: la propia persona afectada, o alguien en su nombre.
+enum TipoReporte {
+  PROPIA
+  EN_NOMBRE_DE
 }
 
 model Necesidad {
-  id          String             @id @default(cuid())
-  titulo      String
-  descripcion String
-  categoria   CategoriaNecesidad
-  urgencia    Urgencia           @default(MEDIA)
-  estado      EstadoNecesidad    @default(PENDIENTE)
-  numPersonas Int                @default(1) @map("num_personas")
+  id            String              @id @default(cuid())
+  titulo        String
+  descripcion   String
+  categoria     CategoriaNecesidad
+  urgencia      Urgencia            @default(MEDIA)
+  estado        EstadoNecesidad     @default(PENDIENTE)
+  numPersonas   Int                 @default(1) @map("num_personas")
 
-  // CONTACTO SENSIBLE — nunca exponer en listados publicos ni mapa abierto.
+  // Poblacion vulnerable: booleanos para priorizar sin exponer detalle.
+  hayMenores             Boolean @default(false) @map("hay_menores")
+  hayAdultosMayores      Boolean @default(false) @map("hay_adultos_mayores")
+  hayPersonasDiscapacidad Boolean @default(false) @map("hay_personas_discapacidad")
+  hayGestantes           Boolean @default(false) @map("hay_gestantes")
+  hayEnfermosCronicos    Boolean @default(false) @map("hay_enfermos_cronicos")
+
+  // Quien reporta.
+  tipoReporte TipoReporte @default(PROPIA) @map("tipo_reporte")
+
+  // CONTACTO SENSIBLE — nunca en listados publicos ni mapa abierto.
   contactoNombre   String? @map("contacto_nombre")
   contactoTelefono String? @map("contacto_telefono")
   contactoEmail    String? @map("contacto_email")
 
+  // ENLACE OFICIAL SENSIBLE — radicado del RUD/RUNDA. Mismo tratamiento que
+  // el contacto: nunca expuesto en publico. Cotejo con RUD activo -> despues.
+  radicadoRud String? @map("radicado_rud")
+
+  // Geo-etiqueta obligatoria.
   municipioCodigo String    @map("municipio_codigo") @db.VarChar(5)
   municipio       Municipio @relation(fields: [municipioCodigo], references: [codigo])
 
-  autorId String? @map("autor_id")
-  autor   User?   @relation(fields: [autorId], references: [id])
+  // Autor: usuario que registro (siempre existe en v1, requiere login).
+  autorId String @map("autor_id")
+  autor   User   @relation("NecesidadAutor", fields: [autorId], references: [id])
+
+  // Si la reporta una organizacion en nombre de la comunidad (nivel 1b).
+  organizacionId String?       @map("organizacion_id")
+  organizacion   Organizacion? @relation("NecesidadOrganizacion", fields: [organizacionId], references: [id])
+
+  // Validaciones que respaldan esta necesidad (nivel de confianza se deriva
+  // de contar y ponderar estas).
+  validaciones Validacion[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -131,5 +233,48 @@ model Necesidad {
   @@index([categoria])
   @@index([estado])
   @@index([urgencia])
+  @@index([autorId])
+  @@index([organizacionId])
   @@map("necesidades")
+}
+
+// -------------------- VALIDACION (anti-fraude, validacion por pares) --------------------
+// Cada validacion suma confianza visible a una necesidad. NUNCA es requisito
+// para publicar. Salvaguardas:
+//  - Identidad detras: validadorId siempre requerido (no anonimo).
+//  - No autovalidacion: se valida en la Server Action que validadorId != autor.
+//  - Una por usuario por necesidad: constraint unico (validadorId, necesidadId).
+//  - Peso por confianza del validador: se calcula en logica (cuentas nuevas
+//    o sin historial pesan menos); el tipo distingue comunitaria vs institucional.
+
+enum TipoValidacion {
+  COMUNITARIA   // un vecino/par identificado confirma "me consta que es real"
+  INSTITUCIONAL // respaldada por una organizacion
+}
+
+model Validacion {
+  id     String         @id @default(cuid())
+  tipo   TipoValidacion @default(COMUNITARIA)
+  // Comentario opcional del validador (por que le consta).
+  nota   String?
+
+  // Quien valida (identidad obligatoria, nunca anonimo).
+  validadorId String @map("validador_id")
+  validador   User   @relation("ValidacionValidador", fields: [validadorId], references: [id])
+
+  // Que necesidad valida. Si se borra la necesidad, sus validaciones se borran.
+  necesidadId String    @map("necesidad_id")
+  necesidad   Necesidad @relation(fields: [necesidadId], references: [id], onDelete: Cascade)
+
+  // Si la validacion la hace en representacion de una organizacion (nivel 1b).
+  organizacionId String?       @map("organizacion_id")
+  organizacion   Organizacion? @relation("ValidacionOrganizacion", fields: [organizacionId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Un usuario solo puede validar una vez cada necesidad (anti-inflado).
+  @@unique([validadorId, necesidadId])
+  @@index([necesidadId])
+  @@index([validadorId])
+  @@map("validaciones")
 }

@@ -5,103 +5,124 @@ damnificadas con ofrecimientos de ayuda, segmentada por departamento y municipio
 (DIVIPOLA del DANE). Respuesta al terremoto del 10 de agosto de 2026 (Mw 7.4,
 epicentro San Jose del Palmar, Choco).
 
-Repo: github.com/juanelsinergiadero/reconstruircolombia (privado por ahora).
-Licencia: AGPL-3.0-only.
+Repo: github.com/juanelsinergiadero/reconstruircolombia. Licencia: AGPL-3.0-only.
 
 ---
 
 ## Principios NO negociables (mandan sobre velocidad y tecnica)
 
-1. **Pensar primero en el damnificado.** La persona que perdio todo debe poder
-   pedir ayuda con la minima barrera posible. Ninguna decision de producto puede
-   subir esa barrera (esto ya descarto verificacion biometrica/facial en v1).
-2. **Privacidad de datos sensibles.** Ubicacion, contacto y vulnerabilidades son
-   datos delicados. Los campos de contacto de `Necesidad` (contactoNombre,
-   contactoTelefono, contactoEmail) NUNCA se exponen en listados publicos ni en
-   el mapa abierto; solo por canal controlado. La capa de API debe omitirlos por
-   defecto.
-3. **Anti-fraude y verificacion como nucleo**, no como extra. En v1 se apoya en
-   registro con cuenta + (proximo) verificacion de email. La verificacion robusta
-   (comunidad, canales oficiales UNGRD/alcaldias) llega en v2, NO con biometria.
-4. **Separacion estricta codigo/datos.** El codigo es publico; los datos de
-   personas jamas van al repo ni viajan sin cifrar. El `.env` y los CSV de
-   DIVIPOLA estan en `.gitignore`.
+1. **Pensar primero en el damnificado.** Minima barrera posible para pedir ayuda.
+   Ninguna decision de producto sube esa barrera (por eso se descarto biometria).
+2. **Privacidad de datos sensibles.** En `Necesidad`, los campos `contactoNombre`,
+   `contactoTelefono`, `contactoEmail` y `radicadoRud` NUNCA se exponen en listados
+   publicos ni mapa abierto. La consulta Prisma publica DEBE usar `select` explicito
+   que los excluya (no basta con no mostrarlos: no deben salir de la BD).
+3. **Anti-fraude por capas de confianza social, NO biometria.** La verificacion
+   SUMA confianza visible, nunca es requisito para publicar (protege al aislado).
+4. **Separacion codigo/datos.** `.env` y `prisma/data/*.csv` en `.gitignore`.
+   Documentos de organizaciones y datos de personas jamas al repo ni sin cifrar.
 
 ---
 
-## Stack y versiones (FIJADAS deliberadamente, no cambiar sin razon)
+## Stack y versiones (FIJADAS, no cambiar sin razon)
 
-- **Next.js 15.5.23** (App Router). NO subir a 16: la tuberia y NextAuth estan
-  validadas sobre 15. Fue decision explicita.
-- **React 19.2**, **TypeScript estricto**, **Tailwind v4** (config por CSS, sin
-  tailwind.config.ts).
-- **Prisma 6.19.3**. NO subir a 7: la 7 rompe el singleton y exige driver adapter.
-  Decision explicita por coherencia con la tuberia.
-- **NextAuth v5** (5.0.0-beta.32) con CredentialsProvider + bcrypt, estrategia JWT.
-- **PostgreSQL 16** en Docker. **pnpm** como gestor. **Zod 4** para validacion.
+- **Next.js 15.5.23** (App Router). NO subir a 16.
+- **React 19.2**, **TypeScript estricto**, **Tailwind v4** (config por CSS).
+- **Prisma 6.19.3**. NO subir a 7.
+- **NextAuth v5** (5.0.0-beta.32), CredentialsProvider + bcrypt, JWT. AUTH_SECRET en .env.
+- **PostgreSQL 16** en Docker. **pnpm**. **Zod 4**.
 
 ---
 
 ## Convenciones
 
-- **Español siempre**: UI, comentarios, mensajes, y commits en español.
-- **TypeScript estricto**, nunca JavaScript puro.
-- **Nunca asumir codigo/rutas/config sin verificar.** Pedir el archivo o el
-  comando de diagnostico antes de proponer.
-- Nombres de dominio en español (Necesidad, Departamento, Municipio, Rol).
-- Identidad geografica = codigo DIVIPOLA como String (2 digitos depto, 5 municipio).
-  NUNCA como Int: perder el cero a la izquierda ("05") rompe el join.
+- **Español siempre**: UI, comentarios, mensajes, commits.
+- **TypeScript estricto**, nunca JS puro. Codigo por archivos completos.
+- Nombres de dominio en español (Necesidad, Organizacion, Validacion, Rol).
+- Codigo DIVIPOLA como String (2 digitos depto, 5 municipio). NUNCA Int.
+- Mobile-first en toda UI nueva (el damnificado entra desde movil gama baja).
 
 ---
 
 ## Infraestructura
 
-- Servidor: srv1694606 (187.77.203.30), 2 vCPU, 7.8 GB RAM, Ubuntu 24.
-- Proyecto en `/var/www/reconstruircolombia`.
-- Postgres DEV en Docker: contenedor `reconstruir-db-dev`, puerto 127.0.0.1:5433,
-  base `reconstruir_dev_db`, usuario `reconstruir_user`.
+- Servidor srv1694606 (187.77.203.30). Proyecto en `/var/www/reconstruircolombia`.
+- Postgres DEV: contenedor `reconstruir-db-dev`, 127.0.0.1:5433, base
+  `reconstruir_dev_db`, usuario `reconstruir_user`.
   Levantar: `docker compose -f docker-compose.dev.yml up -d`.
-- PROD (pendiente): usara puerto 5434. Estrategia espejo DEV -> PROD con backups.
-- Deploy key SSH: alias `github-reconstruircolombia` en ~/.ssh/config.
-- ADVERTENCIA: el `.env` de dev tiene contraseña temporal `12345678`.
-  CAMBIAR antes de prod (openssl rand -hex 24).
+- ADVERTENCIA: `.env` de dev tiene contraseña temporal `12345678` y un AUTH_SECRET
+  de dev. CAMBIAR ambos antes de prod (openssl rand -hex 24).
 
 ---
 
-## Estado actual (que esta hecho y verificado)
+## Modelo de dominio (schema.prisma — dominio ampliado, ya migrado)
 
-- [x] Infra: servidor, Docker, Postgres dev aislado.
-- [x] Schema Prisma migrado: Departamento, Municipio, User (rol + municipio),
-      Necesidad. Enums: Rol, CategoriaNecesidad, Urgencia, EstadoNecesidad.
-      (Ofrecimiento y Verificacion se dejaron para v2, no estan en el schema.)
-- [x] Seed DIVIPOLA ejecutado: 33 departamentos, 1122 municipios, con coordenadas.
-      CSV en prisma/data/ (ignorados por git; descargar del DANE si faltan, ver
-      comentarios en prisma/seed.ts).
-- [x] Auth: NextAuth v5 completo (lib/auth.ts, lib/auth.config.ts edge-safe,
-      types/next-auth.d.ts, middleware.ts, route handler). Compila limpio.
-- [x] Logica de registro de necesidades:
-      - lib/validations/necesidad.ts (esquema Zod)
-      - lib/geo.ts (departamentos, municipios por depto, municipioExiste)
-      - app/necesidades/nueva/actions.ts (Server Action crearNecesidad:
-        valida sesion + Zod + integridad de municipio, luego persiste)
+Anclado en marcos humanitarios reales (clusteres ONU/Esfera, RUD/RUNDA de la UNGRD).
 
-## Lo que sigue (v1 MVP)
+**6 tablas:** Departamento, Municipio, Organizacion, User, Necesidad, Validacion.
 
-- [ ] Formulario `/necesidades/nueva` (page.tsx): selector jerarquico
-      departamento -> municipio encadenado, campos, useActionState con la
-      Server Action ya escrita. Requiere login (ya lo fuerza el middleware).
-- [ ] Listado publico `/necesidades` (page.tsx): filtrable por departamento y
-      municipio. NO mostrar campos de contacto sensibles.
-- [ ] Paginas /sign-in y /registro (auth ya soporta el flujo).
+**Categorias de Necesidad** (alineadas a clusteres ONU, en lenguaje de la persona):
+AGUA_SANEAMIENTO, ALIMENTOS, ALOJAMIENTO, SALUD, HIGIENE, ROPA_ABRIGO,
+PROTECCION, EDUCACION, RESCATE, OTRO.
+
+**Poblacion vulnerable** (booleanos en Necesidad, para priorizar sin exponer):
+hayMenores, hayAdultosMayores, hayPersonasDiscapacidad, hayGestantes,
+hayEnfermosCronicos.
+
+**Organizacion** (sociedad civil, entidad propia): tipo (INSTITUCION_EDUCATIVA,
+JAC, FUNDACION, COLECTIVO, ENTIDAD_OFICIAL, OTRA), estado (REGISTRADA / VERIFICADA).
+Un User pertenece a UNA organizacion (opcional). La subida de documentos de
+verificacion esta MODELADA (documentoUrl) pero se implementa despues (requiere
+almacenamiento privado). En v1 un moderador marca VERIFICADA manualmente.
+
+**Verificacion por niveles de confianza** (hibrido: estado de moderacion +
+validaciones contadas). El `estado` de Necesidad (PENDIENTE/EN_PROCESO/RESUELTA/
+RECHAZADA) lo maneja moderacion. El nivel de confianza que ve el donante se
+DERIVA de contar/ponderar las Validacion. Niveles: 0 sin verificar (siempre se
+publica), 1a respaldo comunitario (pares), 1b institucional (organizacion),
+2 oficial (radicadoRud, cotejo activo -> despues).
+
+**Validacion (anti-fraude, validacion por pares — ACTIVA en v1):** salvaguardas
+como constraints: validadorId obligatorio (nunca anonimo), @@unique(validadorId,
+necesidadId) (una por usuario por necesidad), onDelete Cascade. La no-autovalidacion
+(validador != autor de la necesidad) se valida en la Server Action. Peso por
+confianza del validador se calcula en logica (cuentas nuevas pesan menos). Tipo:
+COMUNITARIA (vecino) / INSTITUCIONAL (organizacion).
+
+**tipoReporte** en Necesidad: PROPIA / EN_NOMBRE_DE (+ organizacionId opcional).
+
+---
+
+## Estado actual
+
+HECHO Y MIGRADO: infra, schema ampliado (6 tablas), DIVIPOLA sembrada (33/1122),
+auth (NextAuth v5), y las paginas de registro/sign-in.
+
+CODIGO QUE QUEDO DESACTUALIZADO tras la ampliacion del schema (arreglar):
+- lib/validations/necesidad.ts: usa categorias VIEJAS (AGUA, REFUGIO, ROPA).
+  Actualizar al enum nuevo.
+- app/necesidades/nueva/actions.ts y necesidad-form.tsx: formulario viejo, sin
+  poblacion vulnerable ni tipoReporte. Rediseñar mobile-first.
+- app/necesidades/page.tsx: listado usa labels de categorias viejas.
+
+## Lo que sigue (v1)
+
+- [ ] Actualizar codigo roto a categorias nuevas.
+- [ ] Formulario /necesidades/nueva rediseñado mobile-first: categorias nuevas,
+      poblacion vulnerable, tipoReporte. Contacto y radicadoRud nunca publicos.
+- [ ] Listado /necesidades con categorias nuevas y filtros. Sin datos sensibles.
+- [ ] Registro y gestion de Organizaciones (nivel REGISTRADA en v1).
+- [ ] Validacion por pares en las necesidades (con salvaguardas anti-fraude).
+- [ ] Detalle de necesidad /necesidades/[id] (contacto visible solo a logueados).
+- [ ] Landing (/) y layout (lang="es", metadata) — aun del scaffold.
 - [ ] Verificacion de email con Resend.
-- [ ] Ajustar layout.tsx: lang="es" y metadata real (aun tiene el del scaffold).
 
-## Alcance por fases
+## Fases futuras (NO en v1, ya decididas)
 
-- **v1 (MVP)**: registrar necesidad geo-etiquetada -> verla en lista/mapa
-  filtrable -> contacto seguro. Nada mas.
-- **v2**: verificacion de necesidades, emparejamiento de ofrecimientos, roles y
-  moderacion.
-- **v3**: dashboards, escala nacional, canales SMS/WhatsApp, integracion oficial.
+- Modulo de IA (Groq) para orientar rehabilitacion de viviendas de bahareque y
+  tapia pisada (tecnicas tradicionales, muy afectadas en sismos).
+- Subida segura de documentos de organizaciones (nivel VERIFICADA).
+- Enlace activo con RUD/RUNDA de la UNGRD (nivel 2 de verificacion).
+- Emparejamiento de ofrecimientos, dashboards, escala nacional, SMS/WhatsApp.
 
 Pagos/donaciones (Wompi): NO en v1. Solo cuando la verificacion este madura.
