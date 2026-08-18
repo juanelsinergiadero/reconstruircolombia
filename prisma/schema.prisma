@@ -135,6 +135,7 @@ model User {
 
   necesidades  Necesidad[]  @relation("NecesidadAutor")
   validaciones Validacion[] @relation("ValidacionValidador")
+  solicitudesEnviadas SolicitudContacto[] @relation("SolicitudSolicitante")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -226,6 +227,10 @@ model Necesidad {
   // de contar y ponderar estas).
   validaciones Validacion[]
 
+  // Solicitudes de contacto mediado (Modelo B): un donante pide que se le
+  // habilite el canal de contacto con el autor. Ver SolicitudContacto.
+  solicitudes SolicitudContacto[]
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -277,4 +282,42 @@ model Validacion {
   @@index([necesidadId])
   @@index([validadorId])
   @@map("validaciones")
+}
+
+// -------------------- SOLICITUD DE CONTACTO (canal controlado, Modelo B) --------------------
+// El contacto real (telefono/correo del damnificado y del donante) nunca se
+// expone en la plataforma por si solo. Un donante que quiere ayudar pide
+// habilitar el canal; el autor de la necesidad decide si lo acepta. Solo
+// entonces, y solo a las dos partes involucradas, se revela el contacto —
+// siempre dentro de la plataforma, tras login, nunca en el correo de aviso.
+
+enum EstadoSolicitud {
+  PENDIENTE
+  ACEPTADA
+  RECHAZADA
+}
+
+model SolicitudContacto {
+  id      String          @id @default(cuid())
+  estado  EstadoSolicitud @default(PENDIENTE)
+  mensaje String?
+
+  // Quien pide ayudar (identidad obligatoria, nunca anonimo).
+  solicitanteId String @map("solicitante_id")
+  solicitante   User   @relation("SolicitudSolicitante", fields: [solicitanteId], references: [id])
+
+  // Necesidad sobre la que se pide contacto. Si se borra la necesidad, sus
+  // solicitudes se borran.
+  necesidadId String    @map("necesidad_id")
+  necesidad   Necesidad @relation(fields: [necesidadId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime  @default(now()) @map("created_at")
+  respondidaEn DateTime? @map("respondida_en")
+
+  // Un donante solo puede tener una solicitud activa por necesidad
+  // (anti-spam: no puede insistir creando solicitudes repetidas).
+  @@unique([solicitanteId, necesidadId])
+  @@index([necesidadId])
+  @@index([solicitanteId])
+  @@map("solicitudes_contacto")
 }
