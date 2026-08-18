@@ -19,6 +19,27 @@ export const CATEGORIAS = [
 
 export const URGENCIAS = ['BAJA', 'MEDIA', 'ALTA', 'CRITICA'] as const
 
+// Etiquetas legibles, compartidas entre el formulario de registro y el
+// listado publico (evita duplicar el mapeo en un componente cliente y
+// otro servidor).
+export const CATEGORIA_LABEL: Record<(typeof CATEGORIAS)[number], string> = {
+  AGUA: 'Agua',
+  ALIMENTOS: 'Alimentos',
+  SALUD: 'Salud',
+  REFUGIO: 'Refugio / alojamiento',
+  ROPA: 'Ropa',
+  HIGIENE: 'Higiene',
+  RESCATE: 'Rescate',
+  OTRO: 'Otro',
+}
+
+export const URGENCIA_LABEL: Record<(typeof URGENCIAS)[number], string> = {
+  BAJA: 'Baja',
+  MEDIA: 'Media',
+  ALTA: 'Alta',
+  CRITICA: 'Critica',
+}
+
 export const necesidadSchema = z.object({
   titulo: z
     .string()

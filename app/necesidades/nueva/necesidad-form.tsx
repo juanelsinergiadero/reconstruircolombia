@@ -1,29 +1,11 @@
 'use client'
 
 import { useActionState, useState, useTransition } from 'react'
-import { CATEGORIAS, URGENCIAS } from '@/lib/validations/necesidad'
+import { CATEGORIAS, URGENCIAS, CATEGORIA_LABEL, URGENCIA_LABEL } from '@/lib/validations/necesidad'
 import { crearNecesidad, obtenerMunicipios, type CrearNecesidadState } from './actions'
 
 type Departamento = { codigo: string; nombre: string }
 type Municipio = { codigo: string; nombre: string; slug: string }
-
-const CATEGORIA_LABEL: Record<(typeof CATEGORIAS)[number], string> = {
-  AGUA: 'Agua',
-  ALIMENTOS: 'Alimentos',
-  SALUD: 'Salud',
-  REFUGIO: 'Refugio / alojamiento',
-  ROPA: 'Ropa',
-  HIGIENE: 'Higiene',
-  RESCATE: 'Rescate',
-  OTRO: 'Otro',
-}
-
-const URGENCIA_LABEL: Record<(typeof URGENCIAS)[number], string> = {
-  BAJA: 'Baja',
-  MEDIA: 'Media',
-  ALTA: 'Alta',
-  CRITICA: 'Critica',
-}
 
 const ESTADO_INICIAL: CrearNecesidadState = { ok: false }
 
