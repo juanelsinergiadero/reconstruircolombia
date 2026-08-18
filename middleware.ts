@@ -13,6 +13,7 @@ const publicRoutes = [
   '/sign-in',
   '/registro',
   '/necesidades',        // listado y detalle de necesidades (lectura)
+  '/organizaciones',     // listado y detalle de organizaciones (lectura)
   '/api/auth',
 ]
 
