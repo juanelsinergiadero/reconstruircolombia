@@ -8,6 +8,11 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  /* Acento de marca: terracota/tierra. Coherente con "reconstruir" y con la
+     rehabilitacion de vivienda en bahareque y tapia pisada (construccion en
+     tierra) del roadmap — no es un tono de emergencia (rojo) ni pastel. */
+  --color-acento: #8a3423;
+  --color-acento-oscuro: #6f2a1c;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

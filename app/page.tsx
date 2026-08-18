@@ -1,69 +1,110 @@
-import Image from "next/image";
+import Link from 'next/link'
 
-export default function Home() {
+// Landing editorial: fondo blanco fijo (identidad de marca, no sigue el
+// prefers-color-scheme del resto del sitio), un solo acento terracota,
+// sin tarjetas ni sombras. Mobile-first: se disena primero para ~375px.
+
+const PASOS = [
+  {
+    numero: '01',
+    titulo: 'Se cuenta la necesidad',
+    texto:
+      'Una persona afectada — o alguien en su nombre — describe que necesita y donde. Sin tramites ni barreras: cinco minutos desde el celular.',
+  },
+  {
+    numero: '02',
+    titulo: 'La comunidad la respalda',
+    texto:
+      'Vecinos, juntas de accion comunal, fundaciones y colectivos que conocen la situacion de cerca la validan. Eso suma confianza; nunca es un requisito para pedir ayuda.',
+  },
+  {
+    numero: '03',
+    titulo: 'La ayuda llega directo',
+    texto:
+      'Voluntarios, organizaciones y quien pueda dar una mano ven necesidades reales, ubicadas y respaldadas por la comunidad — y responden sin intermediarios.',
+  },
+] as const
+
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="flex-1 bg-white text-zinc-900">
+      <div className="mx-auto max-w-5xl px-6 sm:px-10 lg:px-16">
+        <header className="pt-10 sm:pt-14">
+          <span className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-900">
+            reconstruircolombia
+          </span>
+        </header>
+
+        <section className="pt-16 pb-20 sm:pt-24 sm:pb-28">
+          <p className="text-sm font-semibold uppercase tracking-[0.15em] text-acento">
+            Respuesta al terremoto del 10 de agosto
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+
+          <h1 className="mt-5 max-w-3xl text-5xl font-bold leading-[1.05] tracking-tight sm:text-7xl lg:text-8xl">
+            Reconstruir es cosa de <span className="text-acento">todos</span>.
+          </h1>
+
+          <p className="mt-8 max-w-xl text-lg leading-relaxed text-zinc-600 sm:text-xl">
+            reconstruircolombia conecta lo que necesitan las personas
+            afectadas por el sismo con la ayuda que la comunidad puede dar.
+            Nada de fondos ni recolectas: informacion real, ubicada y
+            verificada por quienes estan cerca.
+          </p>
+
+          <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+            <Link
+              href="/necesidades"
+              className="flex items-center justify-center bg-acento px-8 py-4 text-base font-medium text-white transition-colors hover:bg-acento-oscuro sm:w-auto"
+            >
+              Ver necesidades
+            </Link>
+            <Link
+              href="/necesidades/nueva"
+              className="flex items-center justify-center border border-zinc-900 px-8 py-4 text-base font-medium text-zinc-900 transition-colors hover:bg-zinc-900 hover:text-white sm:w-auto"
+            >
+              Registrar una necesidad
+            </Link>
+          </div>
+        </section>
+
+        <section className="border-t border-zinc-200 py-16 sm:py-20">
+          <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-zinc-500">
+            Como funciona
+          </h2>
+
+          <ol className="mt-8 divide-y divide-zinc-200 border-b border-zinc-200">
+            {PASOS.map((paso) => (
+              <li key={paso.numero} className="py-10 sm:flex sm:items-baseline sm:gap-10 sm:py-12">
+                <span className="block text-3xl font-bold text-acento sm:w-16 sm:shrink-0 sm:text-4xl">
+                  {paso.numero}
+                </span>
+                <div className="mt-3 sm:mt-0">
+                  <h3 className="text-xl font-semibold sm:text-2xl">{paso.titulo}</h3>
+                  <p className="mt-3 max-w-2xl text-base leading-relaxed text-zinc-600">
+                    {paso.texto}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="border-t border-zinc-200 py-12 sm:py-16">
+          <p className="max-w-2xl text-sm leading-relaxed text-zinc-500">
+            Respuesta al terremoto del 10 de agosto de 2026 (Mw 7.4), con
+            epicentro en San Jose del Palmar, Choco. Plataforma humanitaria
+            de codigo abierto.
+          </p>
+          <p className="mt-3 text-sm text-zinc-500">
+            Representas una institucion educativa, JAC, fundacion o
+            colectivo?{' '}
+            <Link href="/organizaciones/nueva" className="font-medium text-zinc-900 underline underline-offset-2">
+              Registra tu organizacion
+            </Link>
+            .
+          </p>
+        </section>
+      </div>
+    </main>
+  )
 }
