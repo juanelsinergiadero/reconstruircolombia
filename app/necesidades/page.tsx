@@ -16,7 +16,6 @@ const URGENCIA_COLOR: Record<NecesidadInput['urgencia'], string> = {
 
 const ESTADO_LABEL = {
   PENDIENTE: 'Pendiente de verificacion',
-  VERIFICADA: 'Verificada',
   EN_PROCESO: 'En proceso',
   RESUELTA: 'Resuelta',
   RECHAZADA: 'Rechazada',

@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getAuthUser } from '@/lib/auth'
 import { municipioExiste, getMunicipiosPorDepartamento } from '@/lib/geo'
-import { necesidadSchema } from '@/lib/validations/necesidad'
+import { necesidadSchema, POBLACION_VULNERABLE_CAMPOS } from '@/lib/validations/necesidad'
 
 // Server Action invocada directamente (no como form action) desde el
 // selector jerarquico del formulario: al elegir departamento, trae sus
@@ -39,8 +39,12 @@ export async function crearNecesidad(
     descripcion: formData.get('descripcion'),
     categoria: formData.get('categoria'),
     urgencia: formData.get('urgencia'),
+    tipoReporte: formData.get('tipoReporte'),
     municipioCodigo: formData.get('municipioCodigo'),
     numPersonas: formData.get('numPersonas'),
+    ...Object.fromEntries(
+      POBLACION_VULNERABLE_CAMPOS.map(({ campo }) => [campo, formData.get(campo)])
+    ),
     contactoNombre: formData.get('contactoNombre') ?? '',
     contactoTelefono: formData.get('contactoTelefono') ?? '',
     contactoEmail: formData.get('contactoEmail') ?? '',
@@ -75,7 +79,13 @@ export async function crearNecesidad(
         descripcion: data.descripcion,
         categoria: data.categoria,
         urgencia: data.urgencia,
+        tipoReporte: data.tipoReporte,
         numPersonas: data.numPersonas,
+        hayMenores: data.hayMenores,
+        hayAdultosMayores: data.hayAdultosMayores,
+        hayPersonasDiscapacidad: data.hayPersonasDiscapacidad,
+        hayGestantes: data.hayGestantes,
+        hayEnfermosCronicos: data.hayEnfermosCronicos,
         municipioCodigo: data.municipioCodigo,
         autorId: usuario.id,
         contactoNombre: vacioANull(data.contactoNombre),
