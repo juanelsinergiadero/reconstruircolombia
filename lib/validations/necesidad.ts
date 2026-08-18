@@ -125,3 +125,14 @@ export const necesidadSchema = z
 
 // Tipo inferido para usar en la Server Action y el formulario.
 export type NecesidadInput = z.infer<typeof necesidadSchema>
+
+// Etiqueta del conteo de validaciones por pares, compartida entre el
+// listado y el detalle. La validacion SUMA confianza visible, nunca es
+// requisito: por eso no hay etiqueta para "0 validaciones" (ausencia no
+// implica invalidez).
+export function respaldoLabel(numValidaciones: number): string | null {
+  if (numValidaciones <= 0) return null
+  return numValidaciones === 1
+    ? 'Respaldada por 1 persona de la comunidad'
+    : `Respaldada por ${numValidaciones} personas de la comunidad`
+}

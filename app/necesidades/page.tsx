@@ -1,7 +1,12 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getDepartamentos, getMunicipiosPorDepartamento } from '@/lib/geo'
-import { CATEGORIA_LABEL, URGENCIA_LABEL, type NecesidadInput } from '@/lib/validations/necesidad'
+import {
+  CATEGORIA_LABEL,
+  URGENCIA_LABEL,
+  respaldoLabel,
+  type NecesidadInput,
+} from '@/lib/validations/necesidad'
 
 export const metadata = {
   title: 'Necesidades — reconstruircolombia',
@@ -69,6 +74,7 @@ export default async function NecesidadesPage({
             departamento: { select: { codigo: true, nombre: true } },
           },
         },
+        _count: { select: { validaciones: true } },
       },
       orderBy: { createdAt: 'desc' },
     }),
@@ -161,40 +167,46 @@ export default async function NecesidadesPage({
             </li>
           )}
 
-          {necesidades.map((n) => (
-            <li
-              key={n.id}
-              className="rounded border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${URGENCIA_COLOR[n.urgencia]}`}
+          {necesidades.map((n) => {
+            const respaldo = respaldoLabel(n._count.validaciones)
+            return (
+              <li key={n.id}>
+                <Link
+                  href={`/necesidades/${n.id}`}
+                  className="block rounded border border-zinc-200 bg-white p-4 transition-colors hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
                 >
-                  {URGENCIA_LABEL[n.urgencia]}
-                </span>
-                <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                  {CATEGORIA_LABEL[n.categoria]}
-                </span>
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {ESTADO_LABEL[n.estado]}
-                </span>
-              </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${URGENCIA_COLOR[n.urgencia]}`}
+                    >
+                      {URGENCIA_LABEL[n.urgencia]}
+                    </span>
+                    <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                      {CATEGORIA_LABEL[n.categoria]}
+                    </span>
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                      {ESTADO_LABEL[n.estado]}
+                    </span>
+                  </div>
 
-              <h2 className="mt-2 text-lg font-semibold">{n.titulo}</h2>
-              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                {extracto(n.descripcion)}
-              </p>
+                  <h2 className="mt-2 text-lg font-semibold">{n.titulo}</h2>
+                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    {extracto(n.descripcion)}
+                  </p>
 
-              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
-                <span>
-                  {n.municipio.nombre}, {n.municipio.departamento.nombre}
-                </span>
-                <span>
-                  {n.numPersonas} {n.numPersonas === 1 ? 'persona afectada' : 'personas afectadas'}
-                </span>
-              </div>
-            </li>
-          ))}
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
+                    <span>
+                      {n.municipio.nombre}, {n.municipio.departamento.nombre}
+                    </span>
+                    <span>
+                      {n.numPersonas} {n.numPersonas === 1 ? 'persona afectada' : 'personas afectadas'}
+                    </span>
+                    {respaldo && <span className="font-medium text-blue-700 dark:text-blue-400">{respaldo}</span>}
+                  </div>
+                </Link>
+              </li>
+            )
+          })}
         </ul>
       </main>
     </div>
