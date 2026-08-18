@@ -1,0 +1,135 @@
+// =============================================================
+// reconstruircolombia — Schema Prisma v1 (MVP)
+// =============================================================
+// Identidad geografica: el codigo DIVIPOLA del DANE es la clave natural.
+// Departamento 2 digitos ("05"), Municipio 5 digitos ("05001").
+// Se guardan como String, NUNCA como Int (perder el cero rompe el join).
+// =============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -------------------- GEOGRAFIA (seed DIVIPOLA) --------------------
+
+model Departamento {
+  codigo   String @id @db.VarChar(2)
+  nombre   String
+  latitud  Float?
+  longitud Float?
+
+  municipios Municipio[]
+
+  @@map("departamentos")
+}
+
+model Municipio {
+  codigo        String  @id @db.VarChar(5)
+  nombre        String
+  slug          String
+  tipoMunicipio String? @map("tipo_municipio")
+  latitud       Float?
+  longitud      Float?
+
+  departamentoCodigo String       @map("departamento_codigo") @db.VarChar(2)
+  departamento       Departamento @relation(fields: [departamentoCodigo], references: [codigo])
+
+  usuarios    User[]
+  necesidades Necesidad[]
+
+  @@index([departamentoCodigo])
+  @@index([slug])
+  @@map("municipios")
+}
+
+// -------------------- USUARIOS Y AUTENTICACION --------------------
+
+enum Rol {
+  DAMNIFICADO
+  DONANTE
+  MODERADOR
+  ADMIN
+}
+
+model User {
+  id       String  @id @default(cuid())
+  email    String  @unique
+  password String?
+  nombre   String?
+  telefono String?
+  rol      Rol     @default(DAMNIFICADO)
+
+  municipioCodigo String?    @map("municipio_codigo") @db.VarChar(5)
+  municipio       Municipio? @relation(fields: [municipioCodigo], references: [codigo])
+
+  necesidades Necesidad[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([municipioCodigo])
+  @@map("usuarios")
+}
+
+// -------------------- NECESIDAD (nucleo del MVP) --------------------
+
+enum CategoriaNecesidad {
+  AGUA
+  ALIMENTOS
+  SALUD
+  REFUGIO
+  ROPA
+  HIGIENE
+  RESCATE
+  OTRO
+}
+
+enum Urgencia {
+  BAJA
+  MEDIA
+  ALTA
+  CRITICA
+}
+
+enum EstadoNecesidad {
+  PENDIENTE
+  VERIFICADA
+  EN_PROCESO
+  RESUELTA
+  RECHAZADA
+}
+
+model Necesidad {
+  id          String             @id @default(cuid())
+  titulo      String
+  descripcion String
+  categoria   CategoriaNecesidad
+  urgencia    Urgencia           @default(MEDIA)
+  estado      EstadoNecesidad    @default(PENDIENTE)
+  numPersonas Int                @default(1) @map("num_personas")
+
+  // CONTACTO SENSIBLE — nunca exponer en listados publicos ni mapa abierto.
+  contactoNombre   String? @map("contacto_nombre")
+  contactoTelefono String? @map("contacto_telefono")
+  contactoEmail    String? @map("contacto_email")
+
+  municipioCodigo String    @map("municipio_codigo") @db.VarChar(5)
+  municipio       Municipio @relation(fields: [municipioCodigo], references: [codigo])
+
+  autorId String? @map("autor_id")
+  autor   User?   @relation(fields: [autorId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([municipioCodigo])
+  @@index([categoria])
+  @@index([estado])
+  @@index([urgencia])
+  @@map("necesidades")
+}

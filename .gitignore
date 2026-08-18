@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# datos DIVIPOLA (dato publico del DANE, fuera del repo; ver README para descargarlos)
+prisma/data/*.csv

@@ -1,0 +1,41 @@
+# =============================================================
+# reconstruircolombia — Docker Compose DEV
+# =============================================================
+# Solo el Postgres de desarrollo por ahora. La app en dev corre
+# fuera de Docker (pnpm dev con hot-reload), conectandose a este
+# Postgres via 127.0.0.1:5433. El contenedor de la app se suma
+# cuando dockericemos el runtime para prod.
+#
+# Aislamiento dev/prod en el mismo host:
+#   - Puerto 5433 (prod usara 5434), atado a 127.0.0.1 (no expuesto al mundo).
+#   - Nombres de contenedor, volumen y red con sufijo -dev.
+# =============================================================
+
+services:
+  reconstruir-db-dev:
+    image: postgres:16-alpine
+    container_name: reconstruir-db-dev
+    restart: unless-stopped
+    ports:
+      # host 5433 -> contenedor 5432, solo accesible desde la propia maquina
+      - "127.0.0.1:5433:5432"
+    environment:
+      POSTGRES_USER: reconstruir_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: reconstruir_dev_db
+    volumes:
+      - reconstruir_pgdata_dev:/var/lib/postgresql/data
+    networks:
+      - reconstruir-net-dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reconstruir_user -d reconstruir_dev_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  reconstruir_pgdata_dev:
+
+networks:
+  reconstruir-net-dev:
+    driver: bridge
