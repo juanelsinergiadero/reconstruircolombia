@@ -15,6 +15,7 @@ const publicRoutes = [
   '/necesidades',        // listado y detalle de necesidades (lectura)
   '/organizaciones',     // listado y detalle de organizaciones (lectura)
   '/api/auth',
+  '/verificar',          // consumir el enlace de verificacion de correo
 ]
 
 // Determina si una ruta es publica (coincidencia exacta o subruta).

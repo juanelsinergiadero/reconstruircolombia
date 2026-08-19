@@ -47,7 +47,12 @@ export async function Header() {
               >
                 Mis solicitudes
               </Link>
-              <span className="text-sm text-zinc-600">{usuario.name ?? usuario.email}</span>
+              <Link
+                href="/perfil"
+                className="text-sm text-zinc-600 transition-colors hover:text-acento"
+              >
+                {usuario.name ?? usuario.email}
+              </Link>
               <CerrarSesionBoton />
             </>
           ) : (
@@ -103,7 +108,9 @@ export async function Header() {
                   <Link href="/mis-solicitudes" className="text-base font-medium text-zinc-900">
                     Mis solicitudes
                   </Link>
-                  <span className="text-sm text-zinc-600">{usuario.name ?? usuario.email}</span>
+                  <Link href="/perfil" className="text-sm text-zinc-600">
+                    {usuario.name ?? usuario.email}
+                  </Link>
                   <CerrarSesionBoton />
                 </>
               ) : (

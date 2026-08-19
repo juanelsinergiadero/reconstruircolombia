@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { signIn } from '@/lib/auth'
 import { registroSchema } from '@/lib/validations/auth'
 import { rutaCallbackSegura } from '@/lib/url'
+import { crearYEnviarVerificacion } from '@/lib/verificacion'
 
 export type RegistroState = {
   ok: boolean
@@ -47,20 +48,33 @@ export async function registrarUsuario(
 
   const passwordHash = await bcrypt.hash(password, 12)
 
+  let usuarioId: string
   try {
-    await prisma.user.create({
+    const creado = await prisma.user.create({
       data: {
         email,
         nombre,
         password: passwordHash,
         rol: 'DAMNIFICADO',
       },
+      select: { id: true },
     })
+    usuarioId = creado.id
   } catch {
     return {
       ok: false,
       mensaje: 'No se pudo crear la cuenta. Intenta de nuevo.',
     }
+  }
+
+  // Verificacion de correo: nunca bloquea el registro (min. barrera). Si
+  // falla el envio o la escritura del token, la cuenta ya existe y sigue
+  // siendo usable igual; solo se pierde el badge de "correo verificado"
+  // hasta que la persona lo reenvie desde su perfil.
+  try {
+    await crearYEnviarVerificacion(usuarioId, email, nombre)
+  } catch (error) {
+    console.error('[registro] No se pudo enviar el correo de verificacion:', error)
   }
 
   const callbackUrl = rutaCallbackSegura(formData.get('callbackUrl') as string | null)
