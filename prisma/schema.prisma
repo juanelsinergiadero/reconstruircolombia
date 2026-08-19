@@ -13,12 +13,14 @@
 // =============================================================
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 // -------------------- GEOGRAFIA (seed DIVIPOLA) --------------------
@@ -343,4 +345,32 @@ model SolicitudContacto {
   @@index([necesidadId])
   @@index([solicitanteId])
   @@map("solicitudes_contacto")
+}
+
+// -------------------- RAG: FRAGMENTOS DE MANUALES (Fase 1) --------------------
+// Tuberia de recuperacion para el futuro modulo de IA (Fase 2, Groq) que
+// orientara la rehabilitacion de viviendas de bahareque y tapia pisada. Esta
+// fase SOLO indexa los manuales tecnicos de la AIS; no hay asistente todavia.
+//
+// El campo `embedding` es tipo `vector` (pgvector), que Prisma Client no
+// soporta de forma nativa: se mapea como Unsupported y toda lectura/escritura
+// de ese campo se hace con SQL crudo ($queryRaw/$executeRaw), ver lib/rag/.
+// 384 dimensiones = intfloat/multilingual-e5-small (ver embeddings/app.py).
+model FragmentoManual {
+  id     String @id @default(cuid())
+
+  // De que manual viene el fragmento (identificador corto, no el titulo
+  // completo) y opcionalmente seccion/pagina, para poder citar la fuente.
+  manual        String
+  tituloManual  String  @map("titulo_manual")
+  seccion       String?
+  pagina        Int?
+
+  texto     String
+  embedding Unsupported("vector(384)")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([manual])
+  @@map("fragmentos_manual")
 }

@@ -43,3 +43,9 @@ next-env.d.ts
 
 # datos DIVIPOLA (dato publico del DANE, fuera del repo; ver README para descargarlos)
 prisma/data/*.csv
+
+# manuales tecnicos AIS para el RAG (dato, no codigo; ver scripts/rag para descargarlos)
+prisma/data/manuales/*.pdf
+
+# cache de modelos de embeddings (se descarga solo, no versionar)
+embeddings/.cache/

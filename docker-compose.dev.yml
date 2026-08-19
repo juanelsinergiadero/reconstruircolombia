@@ -1,19 +1,30 @@
 # =============================================================
 # reconstruircolombia — Docker Compose DEV
 # =============================================================
-# Solo el Postgres de desarrollo por ahora. La app en dev corre
-# fuera de Docker (pnpm dev con hot-reload), conectandose a este
-# Postgres via 127.0.0.1:5433. El contenedor de la app se suma
-# cuando dockericemos el runtime para prod.
+# Postgres de desarrollo + servicio interno de embeddings (RAG, Fase 1).
+# La app en dev corre fuera de Docker (pnpm dev con hot-reload),
+# conectandose a Postgres via 127.0.0.1:5433 y a embeddings via
+# 127.0.0.1:8007. El contenedor de la app se suma cuando dockericemos
+# el runtime para prod.
 #
 # Aislamiento dev/prod en el mismo host:
 #   - Puerto 5433 (prod usara 5434), atado a 127.0.0.1 (no expuesto al mundo).
 #   - Nombres de contenedor, volumen y red con sufijo -dev.
+#
+# pgvector: la imagen postgres:16-alpine NO trae la extension vector, asi
+# que se cambio a pgvector/pgvector:pg16 (Postgres 16 + pgvector
+# precompilado, base Debian en vez de Alpine). El volumen de datos existente
+# (reconstruir_pgdata_dev) es compatible: mismo Postgres 16, misma
+# arquitectura. Precaucion aplicada al migrar: se respaldo la base con
+# pg_dump y se corrio REINDEX DATABASE tras el cambio, porque Alpine (musl)
+# y Debian (glibc) pueden ordenar collations locale-aware (en_US.utf8)
+# distinto — los indices de texto se reconstruyeron para evitar
+# inconsistencias silenciosas.
 # =============================================================
 
 services:
   reconstruir-db-dev:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: reconstruir-db-dev
     restart: unless-stopped
     ports:
@@ -33,8 +44,26 @@ services:
       timeout: 5s
       retries: 5
 
+  # Servicio interno de embeddings (RAG, Fase 1). Modelo local
+  # (intfloat/multilingual-e5-small), sin API externa. Ver embeddings/app.py.
+  reconstruir-embeddings-dev:
+    build:
+      context: ./embeddings
+    container_name: reconstruir-embeddings-dev
+    restart: unless-stopped
+    ports:
+      # host 8007 -> contenedor 8000, solo accesible desde la propia maquina
+      # (8001-8006/8090-8094 ya estan en uso por otros proyectos del servidor)
+      - "127.0.0.1:8007:8000"
+    volumes:
+      # cache del modelo (HF_HOME): evita descargarlo de nuevo en cada reinicio
+      - reconstruir_embeddings_cache_dev:/root/.cache/huggingface
+    networks:
+      - reconstruir-net-dev
+
 volumes:
   reconstruir_pgdata_dev:
+  reconstruir_embeddings_cache_dev:
 
 networks:
   reconstruir-net-dev:
