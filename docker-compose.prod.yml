@@ -1,0 +1,72 @@
+# =============================================================
+# reconstruircolombia — Docker Compose PROD
+# =============================================================
+# Espejo de docker-compose.dev.yml, mas el contenedor de la app (en dev
+# corre fuera de Docker con hot-reload; en prod se construye la imagen).
+#
+# Aislamiento dev/prod en el mismo host:
+#   - DB en el puerto 5434 (dev usa 5433), atado a 127.0.0.1.
+#   - App en 127.0.0.1:8094 -> 3000 dentro del contenedor (mismo patron
+#     que el resto de apps Next.js del servidor: puerto interno 3000,
+#     expuesto solo a localhost, Nginx delante hace el proxy publico).
+#   - Nombres de contenedor, volumen y red con sufijo -prod.
+#
+# IMPORTANTE al levantar: docker compose SOLO autocarga un archivo
+# llamado ".env" para resolver ${DB_PASSWORD} en este YAML. Como las
+# variables de prod viven en .env.production (nombre distinto), hay que
+# pasarlo explicito:
+#
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+#
+# (env_file: .env.production en el servicio web solo inyecta variables
+# DENTRO del contenedor; no resuelve el ${DB_PASSWORD} de este archivo).
+#
+# Este archivo NO corre migraciones ni seed — eso es un paso aparte,
+# revisado (prisma migrate deploy contra reconstruir-db-prod).
+# =============================================================
+
+services:
+  reconstruir-db-prod:
+    image: postgres:16-alpine
+    container_name: reconstruir-db-prod
+    restart: unless-stopped
+    ports:
+      # host 5434 -> contenedor 5432, solo accesible desde la propia maquina
+      - "127.0.0.1:5434:5432"
+    environment:
+      POSTGRES_USER: reconstruir_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: reconstruir_prod_db
+    volumes:
+      - reconstruir_pgdata_prod:/var/lib/postgresql/data
+    networks:
+      - reconstruir-net-prod
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reconstruir_user -d reconstruir_prod_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  reconstruir-web-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: reconstruir-web-prod
+    restart: unless-stopped
+    ports:
+      # host 8094 -> contenedor 3000, solo accesible desde la propia maquina
+      - "127.0.0.1:8094:3000"
+    env_file:
+      - .env.production
+    depends_on:
+      reconstruir-db-prod:
+        condition: service_healthy
+    networks:
+      - reconstruir-net-prod
+
+volumes:
+  reconstruir_pgdata_prod:
+
+networks:
+  reconstruir-net-prod:
+    driver: bridge
