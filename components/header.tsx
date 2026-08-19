@@ -41,6 +41,12 @@ export async function Header() {
         <div className="hidden items-center gap-4 sm:flex">
           {usuario ? (
             <>
+              <Link
+                href="/mis-solicitudes"
+                className="text-sm font-medium text-zinc-600 transition-colors hover:text-acento"
+              >
+                Mis solicitudes
+              </Link>
               <span className="text-sm text-zinc-600">{usuario.name ?? usuario.email}</span>
               <CerrarSesionBoton />
             </>
@@ -94,6 +100,9 @@ export async function Header() {
             <div className="mt-4 flex flex-col gap-3 border-t border-zinc-200 pt-4">
               {usuario ? (
                 <>
+                  <Link href="/mis-solicitudes" className="text-base font-medium text-zinc-900">
+                    Mis solicitudes
+                  </Link>
                   <span className="text-sm text-zinc-600">{usuario.name ?? usuario.email}</span>
                   <CerrarSesionBoton />
                 </>
