@@ -16,6 +16,9 @@ const publicRoutes = [
   '/organizaciones',     // listado y detalle de organizaciones (lectura)
   '/api/auth',
   '/verificar',          // consumir el enlace de verificacion de correo
+  '/asistente',          // chat del asistente IA (Fase 2). No enlazado desde
+  '/api/asistente',      // ningun lugar visible; publico porque el asistente
+                          // atiende a cualquiera, damnificado o no, sin cuenta.
 ]
 
 // Determina si una ruta es publica (coincidencia exacta o subruta).
