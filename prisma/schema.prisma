@@ -126,6 +126,11 @@ model User {
   // Desactivacion en vez de borrado: preserva trazabilidad anti-fraude.
   activo    Boolean  @default(true)
 
+  // Verificacion de correo: SUMA confianza (ej. badge visible), NUNCA es
+  // requisito para usar la plataforma. Null = sin verificar; se puede
+  // iniciar sesion, registrar necesidades y todo lo demas igual.
+  emailVerificado DateTime? @map("email_verificado")
+
   municipioCodigo String?    @map("municipio_codigo") @db.VarChar(5)
   municipio       Municipio? @relation(fields: [municipioCodigo], references: [codigo])
 
@@ -136,6 +141,7 @@ model User {
   necesidades  Necesidad[]  @relation("NecesidadAutor")
   validaciones Validacion[] @relation("ValidacionValidador")
   solicitudesEnviadas SolicitudContacto[] @relation("SolicitudSolicitante")
+  tokensVerificacion TokenVerificacion[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -143,6 +149,23 @@ model User {
   @@index([municipioCodigo])
   @@index([organizacionId])
   @@map("usuarios")
+}
+
+// Token de un solo uso para verificar el correo. Se borra al consumirse
+// (exito) o al expirar (chequeo en la Server Action). Si se borra el
+// usuario, sus tokens pendientes se borran con el (cascade).
+model TokenVerificacion {
+  id     String   @id @default(cuid())
+  token  String   @unique
+  expira DateTime
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("tokens_verificacion")
 }
 
 // -------------------- NECESIDAD (nucleo del MVP) --------------------
