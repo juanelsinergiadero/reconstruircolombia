@@ -12,6 +12,7 @@
 // fragmentar, en vez de intentar limpiar fragmento por fragmento.
 
 import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 
 export interface Fragmento {
   texto: string
@@ -20,7 +21,7 @@ export interface Fragmento {
 }
 
 interface ParrafoConPagina {
-  pagina: number
+  pagina: number | null
   texto: string
   seccion: string | null
 }
@@ -313,6 +314,51 @@ export function fragmentarPdf(rutaPdf: string): Fragmento[] {
   const inicio = indiceInicioContenido(paginasParrafos)
   const fin = indiceFinContenido(paginasParrafos, inicio)
   const parrafos = asignarSeccionActiva(paginasParrafos.slice(inicio, fin).flat())
+
+  return agruparEnFragmentos(parrafos)
+}
+
+// Fragmentacion de documentos Markdown propios (ej. el FAQ de la plataforma),
+// mucho mas simples que los PDF de la AIS: sin ruido de extraccion que
+// limpiar, la seccion vigente es simplemente el ultimo encabezado (#/##)
+// visto, y no hay paginas (queda null). Las lineas "# (...)" son notas para
+// quien edita el archivo, no contenido de la plataforma, y se descartan.
+function esNotaDeEdicion(linea: string): boolean {
+  return /^#\s*\(/.test(linea)
+}
+
+export function fragmentarMarkdown(rutaMd: string): Fragmento[] {
+  const lineas = readFileSync(rutaMd, 'utf-8').split('\n')
+
+  const parrafos: ParrafoConPagina[] = []
+  let seccionActual: string | null = null
+  let bloqueActual: string[] = []
+
+  const cerrarBloque = () => {
+    const texto = bloqueActual.join(' ').replace(/\s+/g, ' ').trim()
+    bloqueActual = []
+    if (texto.length > 0) parrafos.push({ pagina: null, texto, seccion: seccionActual })
+  }
+
+  for (const linea of lineas) {
+    const trimmed = linea.trim()
+    if (esNotaDeEdicion(trimmed)) continue
+
+    const encabezado = trimmed.match(/^#{1,2}\s+(.+)$/)
+    if (encabezado) {
+      cerrarBloque()
+      seccionActual = encabezado[1].trim()
+      continue
+    }
+
+    if (trimmed === '') {
+      cerrarBloque()
+      continue
+    }
+
+    bloqueActual.push(trimmed)
+  }
+  cerrarBloque()
 
   return agruparEnFragmentos(parrafos)
 }

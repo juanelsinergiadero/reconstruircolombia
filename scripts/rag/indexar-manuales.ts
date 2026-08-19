@@ -14,7 +14,7 @@
 import path from 'node:path'
 import { prisma } from '../../lib/prisma'
 import { embeber, vectorALiteral } from '../../lib/rag/embeddings'
-import { fragmentarPdf } from '../../lib/rag/fragmentar'
+import { Fragmento, fragmentarMarkdown, fragmentarPdf } from '../../lib/rag/fragmentar'
 
 const CARPETA_MANUALES = path.join(process.cwd(), 'prisma', 'data', 'manuales')
 
@@ -38,17 +38,24 @@ const MANUALES = [
   },
 ]
 
+// Documento propio con hechos verificados de la plataforma (no un manual
+// tecnico de la AIS), para que el asistente responda "como funciona
+// reconstruircolombia" con datos reales en vez de inventar. Se indexa junto
+// a los manuales, pero con un titulo de fuente distinto para diferenciarlo.
+const DOCUMENTOS_MARKDOWN = [
+  {
+    archivo: path.join(process.cwd(), 'lib', 'rag', 'faq-plataforma.md'),
+    manual: 'faq_plataforma',
+    tituloManual: 'Información oficial de reconstruircolombia',
+  },
+]
+
 const TAMANO_LOTE_EMBEDDING = 16
 
-async function indexarManual(config: (typeof MANUALES)[number]) {
-  const rutaPdf = path.join(CARPETA_MANUALES, config.archivo)
-  console.log(`\n== ${config.tituloManual} ==`)
-  console.log(`Extrayendo y fragmentando ${config.archivo}...`)
-
-  const fragmentos = fragmentarPdf(rutaPdf)
+async function indexarFragmentos(manual: string, tituloManual: string, fragmentos: Fragmento[]) {
   console.log(`${fragmentos.length} fragmentos generados.`)
 
-  await prisma.$executeRawUnsafe(`DELETE FROM fragmentos_manual WHERE manual = $1`, config.manual)
+  await prisma.$executeRawUnsafe(`DELETE FROM fragmentos_manual WHERE manual = $1`, manual)
 
   let indexados = 0
   for (let i = 0; i < fragmentos.length; i += TAMANO_LOTE_EMBEDDING) {
@@ -64,8 +71,8 @@ async function indexarManual(config: (typeof MANUALES)[number]) {
       await prisma.$executeRawUnsafe(
         `INSERT INTO fragmentos_manual (id, manual, titulo_manual, seccion, pagina, texto, embedding)
          VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6::vector)`,
-        config.manual,
-        config.tituloManual,
+        manual,
+        tituloManual,
         fragmento.seccion,
         fragmento.pagina,
         fragmento.texto,
@@ -78,9 +85,30 @@ async function indexarManual(config: (typeof MANUALES)[number]) {
   console.log('')
 }
 
+async function indexarManual(config: (typeof MANUALES)[number]) {
+  const rutaPdf = path.join(CARPETA_MANUALES, config.archivo)
+  console.log(`\n== ${config.tituloManual} ==`)
+  console.log(`Extrayendo y fragmentando ${config.archivo}...`)
+
+  const fragmentos = fragmentarPdf(rutaPdf)
+  await indexarFragmentos(config.manual, config.tituloManual, fragmentos)
+}
+
+async function indexarDocumentoMarkdown(config: (typeof DOCUMENTOS_MARKDOWN)[number]) {
+  console.log(`\n== ${config.tituloManual} ==`)
+  console.log(`Fragmentando ${path.basename(config.archivo)}...`)
+
+  const fragmentos = fragmentarMarkdown(config.archivo)
+  await indexarFragmentos(config.manual, config.tituloManual, fragmentos)
+}
+
 async function main() {
   for (const config of MANUALES) {
     await indexarManual(config)
+  }
+
+  for (const config of DOCUMENTOS_MARKDOWN) {
+    await indexarDocumentoMarkdown(config)
   }
 
   const [{ total }] = await prisma.$queryRawUnsafe<[{ total: bigint }]>(
