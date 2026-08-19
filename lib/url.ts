@@ -7,3 +7,10 @@ export function rutaCallbackSegura(url: string | null | undefined): string {
   if (!url || !url.startsWith('/') || url.startsWith('//')) return '/'
   return url
 }
+
+// URL base del sitio para armar enlaces absolutos en correos (donde no hay
+// origin de request disponible). APP_URL se define en .env; en dev cae a
+// localhost.
+export function getBaseUrl(): string {
+  return process.env.APP_URL ?? 'http://localhost:3000'
+}
