@@ -14,6 +14,7 @@ const publicRoutes = [
   '/registro',
   '/necesidades',        // listado y detalle de necesidades (lectura)
   '/organizaciones',     // listado y detalle de organizaciones (lectura)
+  '/colaborar',          // landing para quien quiere sumarse al proyecto
   '/api/auth',
   '/verificar',          // consumir el enlace de verificacion de correo
   '/asistente',          // chat del asistente IA (Fase 2). No enlazado desde
