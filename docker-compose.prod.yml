@@ -27,7 +27,7 @@
 
 services:
   reconstruir-db-prod:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: reconstruir-db-prod
     restart: unless-stopped
     ports:
@@ -46,6 +46,24 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+
+  # Servicio interno de embeddings (RAG). Modelo local
+  # (intfloat/multilingual-e5-small), sin API externa. Ver embeddings/app.py.
+  # Espejo del de dev, con sufijo -prod y puerto 8008 (dev usa 8007).
+  reconstruir-embeddings-prod:
+    build:
+      context: ./embeddings
+    container_name: reconstruir-embeddings-prod
+    restart: unless-stopped
+    ports:
+      # host 8008 -> contenedor 8000, solo accesible desde la propia maquina
+      - "127.0.0.1:8008:8000"
+    volumes:
+      # cache del modelo (HF_HOME): evita descargarlo de nuevo en cada reinicio
+      - reconstruir_embeddings_cache_prod:/root/.cache/huggingface
+    networks:
+      - reconstruir-net-prod
 
   reconstruir-web-prod:
     build:
@@ -66,6 +84,7 @@ services:
 
 volumes:
   reconstruir_pgdata_prod:
+  reconstruir_embeddings_cache_prod:
 
 networks:
   reconstruir-net-prod:
