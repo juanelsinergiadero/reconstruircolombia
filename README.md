@@ -179,6 +179,8 @@ ONU/Esfera, RUD/RUNDA de la UNGRD):
 
 ## Contribuciones
 
-El proyecto es de código abierto y las contribuciones externas se
-abrirán próximamente. Si quieres colaborar mientras tanto, abre un issue
-para conversar antes de invertir tiempo en un cambio grande.
+El proyecto es de código abierto y recibe contribuciones externas. Lee
+la [guía de contribución](CONTRIBUTING.md) para instrucciones de cómo
+levantar el proyecto en local, las convenciones del repositorio y el
+flujo de fork → rama → Pull Request. Al participar aceptas seguir el
+[Código de Conducta](CODE_OF_CONDUCT.md).
