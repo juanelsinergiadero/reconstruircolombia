@@ -1,6 +1,6 @@
-// Endpoint del asistente (Fase 2, RAG + Groq). No enlazado desde ninguna
-// parte visible del sitio: se prueba por URL directa (/asistente) antes de
-// publicarlo. Ver lib/rag/prompt-sistema.md para el nucleo de seguridad.
+// Endpoint del asistente (Fase 2, RAG + Groq), consumido desde /asistente
+// (enlace en el footer y boton flotante del layout). Ver
+// lib/rag/prompt-sistema.md para el nucleo de seguridad.
 
 import { buscarFragmentos } from '@/lib/rag/buscar'
 import { construirContextoRag, INSTRUCCIONES_FORMATO_CHAT } from '@/lib/rag/contexto'

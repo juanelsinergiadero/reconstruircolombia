@@ -85,7 +85,10 @@ export function AsistenteChat() {
     <div className="flex flex-1 flex-col">
       <div className="border-b border-acento bg-[#8a34230d] px-4 py-3 text-center text-sm text-zinc-700 sm:px-6">
         Este es un asistente automático (inteligencia artificial) en fase de prueba. Puede
-        cometer errores y no reemplaza la evaluación de un profesional.
+        cometer errores y no reemplaza la evaluación de un profesional.{' '}
+        <strong className="font-semibold text-acento">
+          Si hay riesgo para tu vida, llama ya a la Línea de Emergencias 123.
+        </strong>
       </div>
 
       <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 sm:px-6">

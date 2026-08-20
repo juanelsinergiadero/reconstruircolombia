@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import { AsistenteChat } from './asistente-chat'
 
-// Ruta deliberadamente NO enlazada desde el header, la landing ni ningun
-// otro lugar visible (ver components/header.tsx: no aparece en NAV_LINKS).
-// Se prueba solo por URL directa antes de publicarla. robots noindex/nofollow
-// es una capa extra para que no quede indexada mientras tanto.
+// Se llega aca por el enlace discreto del footer o el boton flotante del
+// layout (components/asistente-boton-flotante.tsx), no desde el header ni
+// la landing: sigue en fase de prueba. robots noindex/nofollow evita que
+// quede indexada mientras tanto.
 export const metadata: Metadata = {
   title: 'Asistente — reconstruircolombia',
   robots: { index: false, follow: false },
