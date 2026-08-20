@@ -32,6 +32,9 @@ export function Footer() {
           >
             Soporte
           </a>
+          <Link href="/asistente" className="transition-colors hover:text-acento">
+            Asistente virtual (en prueba)
+          </Link>
         </nav>
       </div>
     </footer>
