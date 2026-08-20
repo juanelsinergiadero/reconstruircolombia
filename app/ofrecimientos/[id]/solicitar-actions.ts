@@ -8,24 +8,25 @@ import { enviarCorreo } from '@/lib/email'
 import { getBaseUrl } from '@/lib/url'
 import { mensajeSolicitudSchema } from '@/lib/validations/solicitud'
 
-// Canal de contacto mediado (Modelo B): el contacto real nunca se comparte
-// por correo. El correo solo avisa que hay actividad y enlaza a la
-// plataforma, donde el contacto se revela tras login y solo si la
-// solicitud fue ACEPTADA (ver page.tsx y /mis-solicitudes).
+// Espejo de app/necesidades/[id]/solicitar-actions.ts. Aqui quien inicia la
+// solicitud es quien necesita la ayuda ofrecida (no un donante): pide que
+// quien la ofrece habilite el canal de contacto. Misma logica de canal
+// mediado (Modelo B): el contacto real nunca se comparte por correo, solo
+// dentro de la plataforma y solo tras aceptacion.
 
 export type SolicitarContactoState = {
   ok: boolean
   mensaje?: string
 }
 
-// Un donante pide que el autor de la necesidad habilite el contacto.
-// Salvaguardas:
+// Salvaguardas (identicas a las de necesidades):
 //  (a) requiere sesion — identidad siempre, nunca anonimo.
-//  (b) no autosolicitud — el autor no puede pedirse contacto a si mismo.
-//  (c) una solicitud por donante por necesidad — constraint unico
-//      (solicitanteId, necesidadId); aqui solo traducimos su violacion
+//  (b) no autosolicitud — el autor del ofrecimiento no puede pedirse
+//      contacto a si mismo.
+//  (c) una solicitud por solicitante por ofrecimiento — constraint unico
+//      (solicitanteId, ofrecimientoId); aqui solo traducimos su violacion
 //      (P2002) a un mensaje claro.
-export async function solicitarContacto(
+export async function solicitarContactoOfrecimiento(
   _prev: SolicitarContactoState,
   formData: FormData
 ): Promise<SolicitarContactoState> {
@@ -34,9 +35,9 @@ export async function solicitarContacto(
     return { ok: false, mensaje: 'Debes iniciar sesion para solicitar contacto.' }
   }
 
-  const necesidadId = formData.get('necesidadId')
-  if (typeof necesidadId !== 'string' || necesidadId.length === 0) {
-    return { ok: false, mensaje: 'Necesidad invalida.' }
+  const ofrecimientoId = formData.get('ofrecimientoId')
+  if (typeof ofrecimientoId !== 'string' || ofrecimientoId.length === 0) {
+    return { ok: false, mensaje: 'Ofrecimiento invalido.' }
   }
 
   const parsedMensaje = mensajeSolicitudSchema.safeParse(formData.get('mensaje') ?? '')
@@ -46,21 +47,21 @@ export async function solicitarContacto(
   const mensaje = parsedMensaje.data && parsedMensaje.data.length > 0 ? parsedMensaje.data : null
 
   // (autorId real de BD, nunca confiar en el cliente).
-  const necesidad = await prisma.necesidad.findUnique({
-    where: { id: necesidadId },
+  const ofrecimiento = await prisma.ofrecimiento.findUnique({
+    where: { id: ofrecimientoId },
     select: {
-      titulo: true,
+      descripcion: true,
       autorId: true,
       autor: { select: { email: true, nombre: true } },
     },
   })
-  if (!necesidad) {
-    return { ok: false, mensaje: 'Esta necesidad ya no existe.' }
+  if (!ofrecimiento) {
+    return { ok: false, mensaje: 'Este ofrecimiento ya no existe.' }
   }
 
   // (b) No autosolicitud.
-  if (necesidad.autorId === usuario.id) {
-    return { ok: false, mensaje: 'No puedes solicitar contacto en tu propia necesidad.' }
+  if (ofrecimiento.autorId === usuario.id) {
+    return { ok: false, mensaje: 'No puedes solicitar contacto en tu propio ofrecimiento.' }
   }
 
   try {
@@ -68,31 +69,31 @@ export async function solicitarContacto(
       data: {
         // (a) Identidad siempre: solicitanteId nunca es opcional ni anonimo.
         solicitanteId: usuario.id,
-        necesidadId,
+        ofrecimientoId,
         mensaje,
       },
     })
   } catch (error) {
-    // (c) Una solicitud por donante por necesidad.
+    // (c) Una solicitud por solicitante por ofrecimiento.
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      return { ok: false, mensaje: 'Ya enviaste una solicitud para esta necesidad.' }
+      return { ok: false, mensaje: 'Ya enviaste una solicitud para este ofrecimiento.' }
     }
     return { ok: false, mensaje: 'No se pudo enviar la solicitud. Intenta de nuevo.' }
   }
 
-  // Correo al damnificado: solo aviso, jamas el contacto de nadie. Si falla
+  // Correo a quien ofrece: solo aviso, jamas el contacto de nadie. Si falla
   // no rompe el flujo (ver enviarCorreo, que nunca lanza).
-  if (necesidad.autor.email) {
-    const enlace = `${getBaseUrl()}/necesidades/${necesidadId}`
+  if (ofrecimiento.autor.email) {
+    const enlace = `${getBaseUrl()}/ofrecimientos/${ofrecimientoId}`
     await enviarCorreo({
-      para: necesidad.autor.email,
-      asunto: 'Alguien quiere ayudarte — reconstruircolombia',
-      html: `<p>Hola${necesidad.autor.nombre ? ' ' + necesidad.autor.nombre : ''},</p><p>Alguien de la comunidad quiere ayudarte con tu necesidad "${necesidad.titulo}". Entra a la plataforma para ver la solicitud y decidir si la aceptas.</p><p><a href="${enlace}">Ver la solicitud</a></p>`,
-      texto: `Alguien quiere ayudarte con tu necesidad "${necesidad.titulo}". Entra a ${enlace} para ver la solicitud y decidir si la aceptas.`,
+      para: ofrecimiento.autor.email,
+      asunto: 'Alguien esta interesado en tu ofrecimiento — reconstruircolombia',
+      html: `<p>Hola${ofrecimiento.autor.nombre ? ' ' + ofrecimiento.autor.nombre : ''},</p><p>Alguien de la comunidad esta interesado en tu ofrecimiento de ayuda. Entra a la plataforma para ver la solicitud y decidir si la aceptas.</p><p><a href="${enlace}">Ver la solicitud</a></p>`,
+      texto: `Alguien esta interesado en tu ofrecimiento de ayuda. Entra a ${enlace} para ver la solicitud y decidir si la aceptas.`,
     })
   }
 
-  revalidatePath(`/necesidades/${necesidadId}`)
+  revalidatePath(`/ofrecimientos/${ofrecimientoId}`)
 
   return { ok: true, mensaje: 'Tu solicitud fue enviada. Te avisaremos si es aceptada.' }
 }
@@ -102,10 +103,10 @@ export type ResponderSolicitudState = {
   mensaje?: string
 }
 
-// El autor de la necesidad acepta o rechaza una solicitud recibida.
+// Quien ofrece la ayuda acepta o rechaza una solicitud recibida.
 // Salvaguarda: solo el autor real (de BD) puede responder, nunca el
 // solicitante ni un tercero.
-export async function responderSolicitud(
+export async function responderSolicitudOfrecimiento(
   _prev: ResponderSolicitudState,
   formData: FormData
 ): Promise<ResponderSolicitudState> {
@@ -129,10 +130,9 @@ export async function responderSolicitud(
     select: {
       id: true,
       estado: true,
-      necesidadId: true,
-      necesidad: {
+      ofrecimientoId: true,
+      ofrecimiento: {
         select: {
-          titulo: true,
           autorId: true,
           autor: { select: { email: true } },
         },
@@ -140,12 +140,12 @@ export async function responderSolicitud(
       solicitante: { select: { email: true } },
     },
   })
-  if (!solicitud || !solicitud.necesidadId || !solicitud.necesidad) {
+  if (!solicitud || !solicitud.ofrecimientoId || !solicitud.ofrecimiento) {
     return { ok: false, mensaje: 'Esta solicitud ya no existe.' }
   }
 
-  // Solo el autor de la necesidad puede responder.
-  if (solicitud.necesidad.autorId !== usuario.id) {
+  // Solo el autor del ofrecimiento puede responder.
+  if (solicitud.ofrecimiento.autorId !== usuario.id) {
     return { ok: false, mensaje: 'No tienes permiso para responder esta solicitud.' }
   }
 
@@ -160,30 +160,30 @@ export async function responderSolicitud(
 
   if (decision === 'ACEPTADA') {
     // Correo a ambos: solo aviso, el contacto se revela dentro de la
-    // plataforma (detalle de la necesidad y /mis-solicitudes), no aqui.
-    const enlaceNecesidad = `${getBaseUrl()}/necesidades/${solicitud.necesidadId}`
+    // plataforma (detalle del ofrecimiento y /mis-solicitudes), no aqui.
+    const enlaceOfrecimiento = `${getBaseUrl()}/ofrecimientos/${solicitud.ofrecimientoId}`
     const enlaceMisSolicitudes = `${getBaseUrl()}/mis-solicitudes`
 
     if (solicitud.solicitante.email) {
       await enviarCorreo({
         para: solicitud.solicitante.email,
         asunto: 'Tu solicitud fue aceptada — reconstruircolombia',
-        html: `<p>Tu solicitud para ayudar con "${solicitud.necesidad.titulo}" fue aceptada. Entra a la plataforma para ver como contactar.</p><p><a href="${enlaceMisSolicitudes}">Ver mis solicitudes</a></p>`,
-        texto: `Tu solicitud para ayudar con "${solicitud.necesidad.titulo}" fue aceptada. Entra a ${enlaceMisSolicitudes} para ver como contactar.`,
+        html: `<p>Tu solicitud de contacto para el ofrecimiento de ayuda fue aceptada. Entra a la plataforma para ver como contactar.</p><p><a href="${enlaceMisSolicitudes}">Ver mis solicitudes</a></p>`,
+        texto: `Tu solicitud de contacto fue aceptada. Entra a ${enlaceMisSolicitudes} para ver como contactar.`,
       })
     }
 
-    if (solicitud.necesidad.autor.email) {
+    if (solicitud.ofrecimiento.autor.email) {
       await enviarCorreo({
-        para: solicitud.necesidad.autor.email,
+        para: solicitud.ofrecimiento.autor.email,
         asunto: 'Aceptaste una solicitud de contacto — reconstruircolombia',
-        html: `<p>Aceptaste la solicitud de ayuda para "${solicitud.necesidad.titulo}". Entra a la plataforma para ver como contactar.</p><p><a href="${enlaceNecesidad}">Ver la necesidad</a></p>`,
-        texto: `Aceptaste la solicitud de ayuda para "${solicitud.necesidad.titulo}". Entra a ${enlaceNecesidad} para ver como contactar.`,
+        html: `<p>Aceptaste una solicitud de contacto para tu ofrecimiento de ayuda. Entra a la plataforma para ver como contactar.</p><p><a href="${enlaceOfrecimiento}">Ver el ofrecimiento</a></p>`,
+        texto: `Aceptaste una solicitud de contacto para tu ofrecimiento de ayuda. Entra a ${enlaceOfrecimiento} para ver como contactar.`,
       })
     }
   }
 
-  revalidatePath(`/necesidades/${solicitud.necesidadId}`)
+  revalidatePath(`/ofrecimientos/${solicitud.ofrecimientoId}`)
   revalidatePath('/mis-solicitudes')
 
   return {

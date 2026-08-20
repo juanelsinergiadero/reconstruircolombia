@@ -13,6 +13,7 @@ const publicRoutes = [
   '/sign-in',
   '/registro',
   '/necesidades',        // listado y detalle de necesidades (lectura)
+  '/ofrecimientos',      // listado y detalle de ofrecimientos (lectura)
   '/organizaciones',     // listado y detalle de organizaciones (lectura)
   '/colaborar',          // landing para quien quiere sumarse al proyecto
   '/api/auth',
