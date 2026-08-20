@@ -1,10 +1,9 @@
 import Link from 'next/link'
 
 // Pie de pagina discreto: mismo lenguaje visual sobrio (borde superior fino,
-// texto pequeno, acento terracota solo en hover). El enlace a /colaborar va
-// aca a proposito, no en el header ni en la landing principal: quien busca
-// contribuir lo encuentra, sin competir por atencion con damnificados y
-// donantes, que son el foco del sitio.
+// texto pequeno, acento terracota solo en hover). /colaborar tambien esta en
+// el header (ver components/header.tsx); se repite aca junto a GitHub y
+// soporte porque es donde alguien que ya esta al final de la pagina lo espera.
 
 export function Footer() {
   return (

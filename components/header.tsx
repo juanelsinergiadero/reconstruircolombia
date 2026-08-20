@@ -10,6 +10,7 @@ import { CerrarSesionBoton } from './cerrar-sesion-boton'
 const NAV_LINKS = [
   { href: '/necesidades', label: 'Necesidades' },
   { href: '/organizaciones', label: 'Organizaciones' },
+  { href: '/colaborar', label: 'Colaborar' },
 ] as const
 
 export async function Header() {
